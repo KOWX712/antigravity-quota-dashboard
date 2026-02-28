@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, UserPlus, AlertCircle, CheckCircle2, Clock, Mail, Zap, Download } from 'lucide-react';
+import { RefreshCw, UserPlus, AlertCircle, CheckCircle2, Clock, Mail, Zap, Download, ChevronDown } from 'lucide-react';
 
 interface QuotaInfo {
   remainingFraction: number;
@@ -63,7 +63,7 @@ export default function DashboardPage() {
         try {
           const result = await res.json();
           errorMessage = result.error || errorMessage;
-        } catch (e) {
+        } catch {
           errorMessage = `Server error (${res.status}): ${res.statusText || 'Unexpected response format'}`;
         }
         throw new Error(errorMessage);
@@ -72,7 +72,7 @@ export default function DashboardPage() {
       // Parse success response if needed (though we mostly care about refetch)
       try {
         await res.json();
-      } catch (e) {
+      } catch {
         // Ignore parsing errors on success if we don't need the data
       }
       
@@ -275,7 +275,7 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
     }
 
     return sortedGroups;
-  }, [account.data?.models, account.success]);
+  }, [account.success, account.data]);
 
   return (
     <div 
@@ -317,44 +317,66 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
         ) : groupedModels.length === 0 ? (
           <p className="text-sm text-gray-500 italic">No models found for this account.</p>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-3">
             {groupedModels.map((group) => (
-              <div key={group.id} className="space-y-4">
-                <div className="border-b border-gray-200 pb-2 mb-3">
-                  <h4 className="font-medium text-gray-900">{group.name}</h4>
-                  {!group.isOther && (
-                    <div className="flex items-center text-xs text-gray-500 mt-1">
-                      <span className={`font-bold mr-3 ${getQuotaColor(group.remainingFraction)}`}>
-                        {Math.round(group.remainingFraction * 100)}% remaining
-                      </span>
-                      {group.resetTime && (
-                        <span className="flex items-center">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Resets: {formatRelativeTime(group.resetTime)}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  {group.models.map(({ id, model }) => (
-                    <div key={id} className="flex justify-between items-center text-sm">
-                      <span className="text-gray-700 truncate mr-2">
-                        {model.displayName || id}
-                      </span>
-                      {group.isOther && (
-                        <span className={`text-xs font-bold ${getQuotaColor(model.quotaInfo.remainingFraction)}`}>
-                          {Math.round(model.quotaInfo.remainingFraction * 100)}%
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <QuotaGroup key={group.id} group={group} />
             ))}
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function QuotaGroup({ group }: { group: ModelGroup }) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+      <button 
+        onClick={(e) => {
+          e.stopPropagation();
+          setExpanded(!expanded);
+        }}
+        className="w-full text-left px-4 py-3 hover:bg-gray-50 flex justify-between items-center focus:outline-none transition-colors"
+      >
+        <div className="flex-1 min-w-0 mr-4">
+          <h4 className="font-medium text-gray-900 truncate">{group.name}</h4>
+          {!group.isOther && (
+            <div className="flex items-center text-xs text-gray-500 mt-1 flex-wrap gap-x-3 gap-y-1">
+              <span className={`font-bold ${getQuotaColor(group.remainingFraction)}`}>
+                {Math.round(group.remainingFraction * 100)}% remaining
+              </span>
+              {group.resetTime && (
+                <span className="flex items-center">
+                  <Clock className="h-3 w-3 mr-1" />
+                  Resets: {formatRelativeTime(group.resetTime)}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex-shrink-0">
+          <ChevronDown className={`h-5 w-5 text-gray-400 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`} />
+        </div>
+      </button>
+      
+      {expanded && (
+        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50 space-y-2">
+          {group.models.map(({ id, model }) => (
+            <div key={id} className="flex justify-between items-center text-sm">
+              <span className="text-gray-700 truncate mr-2">
+                {model.displayName || id}
+              </span>
+              {group.isOther && (
+                <span className={`text-xs font-bold ${getQuotaColor(model.quotaInfo.remainingFraction)}`}>
+                  {Math.round(model.quotaInfo.remainingFraction * 100)}%
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -365,11 +387,6 @@ function getQuotaColor(fraction: number) {
   return 'text-green-600';
 }
 
-function getQuotaBgColor(fraction: number) {
-  if (fraction < 0.2) return 'bg-red-500';
-  if (fraction < 0.5) return 'bg-amber-500';
-  return 'bg-green-500';
-}
 function formatRelativeTime(dateString?: string) {
   if (!dateString) return 'No reset time';
   const resetDate = new Date(dateString);
