@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCw, UserPlus, AlertCircle, CheckCircle2, Clock, Mail, Zap, Download } from 'lucide-react';
 
@@ -10,8 +10,18 @@ interface QuotaInfo {
 }
 
 interface ModelInfo {
-  displayName: string;
+  displayName?: string;
+  modelProvider?: string;
   quotaInfo: QuotaInfo;
+}
+
+interface ModelGroup {
+  id: string;
+  name: string;
+  models: Array<{ id: string; model: ModelInfo }>;
+  resetTime?: string;
+  remainingFraction: number;
+  isOther?: boolean;
 }
 
 interface AccountData {
@@ -206,6 +216,67 @@ export default function DashboardPage() {
 }
 
 function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (email: string) => void }) {
+  const groupedModels = useMemo(() => {
+    if (!account.success || !account.data?.models) return [];
+
+    const groups = new Map<string, ModelGroup>();
+    const otherGroup: ModelGroup = {
+      id: 'other',
+      name: 'Other',
+      models: [],
+      remainingFraction: 0,
+      isOther: true
+    };
+
+    Object.entries(account.data.models).forEach(([id, model]) => {
+      const isNoise = !model.displayName || id.startsWith('chat_') || id.startsWith('tab_');
+      
+      if (isNoise) {
+        otherGroup.models.push({ id, model });
+        return;
+      }
+
+      const provider = model.modelProvider || 'UNKNOWN';
+      const resetTime = model.quotaInfo.resetTime || 'NO_RESET';
+      const fraction = model.quotaInfo.remainingFraction;
+      const groupKey = `${provider}_${resetTime}_${fraction}`;
+
+      if (!groups.has(groupKey)) {
+        groups.set(groupKey, {
+          id: groupKey,
+          name: provider,
+          models: [],
+          resetTime: model.quotaInfo.resetTime,
+          remainingFraction: fraction,
+        });
+      }
+      
+      groups.get(groupKey)!.models.push({ id, model });
+    });
+
+    groups.forEach(group => {
+      group.models.sort((a, b) => {
+        const nameA = a.model.displayName || a.id;
+        const nameB = b.model.displayName || b.id;
+        return nameA.localeCompare(nameB);
+      });
+    });
+
+    otherGroup.models.sort((a, b) => {
+      const nameA = a.model.displayName || a.id;
+      const nameB = b.model.displayName || b.id;
+      return nameA.localeCompare(nameB);
+    });
+
+    const sortedGroups = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+    
+    if (otherGroup.models.length > 0) {
+      sortedGroups.push(otherGroup);
+    }
+
+    return sortedGroups;
+  }, [account.data?.models, account.success]);
+
   return (
     <div 
       className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col hover:border-blue-300 transition-colors cursor-default"
@@ -243,32 +314,42 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
           <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
             {account.error || 'Failed to fetch quota data.'}
           </div>
-        ) : !account.data?.models || Object.keys(account.data.models).length === 0 ? (
+        ) : groupedModels.length === 0 ? (
           <p className="text-sm text-gray-500 italic">No models found for this account.</p>
         ) : (
           <div className="space-y-6">
-            {Object.entries(account.data.models).map(([id, model]) => (
-              <div key={id} className="space-y-2">
-                <div className="flex justify-between items-end">
-                  <label className="text-sm font-medium text-gray-700 truncate mr-2">
-                    {model.displayName || id}
-                  </label>
-                  <span className={`text-xs font-bold ${getQuotaColor(model.quotaInfo.remainingFraction)}`}>
-                    {Math.round(model.quotaInfo.remainingFraction * 100)}%
-                  </span>
+            {groupedModels.map((group) => (
+              <div key={group.id} className="space-y-4">
+                <div className="border-b border-gray-200 pb-2 mb-3">
+                  <h4 className="font-medium text-gray-900">{group.name}</h4>
+                  {!group.isOther && (
+                    <div className="flex items-center text-xs text-gray-500 mt-1">
+                      <span className={`font-bold mr-3 ${getQuotaColor(group.remainingFraction)}`}>
+                        {Math.round(group.remainingFraction * 100)}% remaining
+                      </span>
+                      {group.resetTime && (
+                        <span className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Resets: {formatRelativeTime(group.resetTime)}
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full rounded-full transition-all duration-500 ${getQuotaBgColor(model.quotaInfo.remainingFraction)}`}
-                    style={{ width: `${model.quotaInfo.remainingFraction * 100}%` }}
-                  />
+                <div className="space-y-2">
+                  {group.models.map(({ id, model }) => (
+                    <div key={id} className="flex justify-between items-center text-sm">
+                      <span className="text-gray-700 truncate mr-2">
+                        {model.displayName || id}
+                      </span>
+                      {group.isOther && (
+                        <span className={`text-xs font-bold ${getQuotaColor(model.quotaInfo.remainingFraction)}`}>
+                          {Math.round(model.quotaInfo.remainingFraction * 100)}%
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-                {model.quotaInfo.resetTime && (
-                  <div className="flex items-center text-[10px] text-gray-400">
-                    <Clock className="h-3 w-3 mr-1" />
-                    Resets: {new Date(model.quotaInfo.resetTime).toLocaleString()}
-                  </div>
-                )}
               </div>
             ))}
           </div>
@@ -288,4 +369,27 @@ function getQuotaBgColor(fraction: number) {
   if (fraction < 0.2) return 'bg-red-500';
   if (fraction < 0.5) return 'bg-amber-500';
   return 'bg-green-500';
+}
+function formatRelativeTime(dateString?: string) {
+  if (!dateString) return 'No reset time';
+  const resetDate = new Date(dateString);
+  const now = new Date();
+  const diffMs = resetDate.getTime() - now.getTime();
+  
+  if (diffMs <= 0) return 'Resetting now...';
+  
+  const diffMins = Math.floor(diffMs / 60000);
+  const hours = Math.floor(diffMins / 60);
+  const mins = diffMins % 60;
+  
+  if (hours > 24) {
+    const days = Math.floor(hours / 24);
+    return `in ${days} day${days > 1 ? 's' : ''}`;
+  }
+  
+  if (hours > 0) {
+    return `in ${hours}h ${mins}m`;
+  }
+  
+  return `in ${mins}m`;
 }
