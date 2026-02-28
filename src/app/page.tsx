@@ -1,8 +1,27 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { RefreshCw, UserPlus, AlertCircle, CheckCircle2, Clock, Mail, Zap, Download, ChevronDown } from 'lucide-react';
+import { GripVertical, RefreshCw, UserPlus, AlertCircle, CheckCircle2, Clock, Mail, Zap, Download, ChevronDown } from 'lucide-react';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+  TouchSensor
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import { extractRecommendedModelIds, type AgentModelSort } from '@/lib/recommended-models';
 
 interface QuotaInfo {
   remainingFraction: number;
@@ -18,6 +37,7 @@ interface ModelInfo {
 interface ModelGroup {
   id: string;
   name: string;
+  sortName: string;
   models: Array<{ id: string; model: ModelInfo }>;
   resetTime?: string;
   remainingFraction: number;
@@ -29,6 +49,7 @@ interface AccountData {
   success: boolean;
   data?: {
     models: Record<string, ModelInfo>;
+    agentModelSorts?: AgentModelSort[];
   };
   error?: string;
 }
@@ -51,6 +72,32 @@ export default function DashboardPage() {
     },
     refetchInterval: 300000, // 5 minutes
   });
+  const [accounts, setAccounts] = useState<AccountData[]>([]);
+
+  useEffect(() => {
+    if (data?.accounts) {
+      setAccounts(data.accounts);
+    }
+  }, [data?.accounts]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+    useSensor(TouchSensor)
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      setAccounts((items) => {
+        const oldIndex = items.findIndex((i) => i.email === active.id);
+        const newIndex = items.findIndex((i) => i.email === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
 
   const handleLoadConfig = async () => {
     setIsLoadingConfig(true);
@@ -108,8 +155,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
-      <header className="bg-white border-b sticky top-0 z-10">
+    <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-zinc-100 font-sans">
+      <header className="bg-white dark:bg-zinc-900 border-b dark:border-zinc-800 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
             <Zap className="h-6 w-6 text-blue-600 fill-blue-600" />
@@ -119,7 +166,7 @@ export default function DashboardPage() {
             <button
               onClick={handleLoadConfig}
               disabled={isLoadingConfig}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-zinc-700 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
               <Download className={`h-4 w-4 mr-2 ${isLoadingConfig ? 'animate-pulse' : ''}`} />
               {isLoadingConfig ? 'Loading...' : 'Load Plugin Config'}
@@ -127,7 +174,7 @@ export default function DashboardPage() {
             <button 
               onClick={() => refetch()}
               disabled={isFetching}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 dark:border-zinc-700 shadow-sm text-sm font-medium rounded-md text-gray-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 hover:bg-gray-50 dark:hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
               {isFetching ? 'Refreshing...' : 'Refresh Now'}
@@ -179,9 +226,9 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : !data?.accounts || data.accounts.length === 0 ? (
-          <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
+          <div className="text-center py-20 bg-white dark:bg-zinc-900 rounded-xl border border-dashed border-gray-300 dark:border-zinc-800">
             <Mail className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">No accounts added</h3>
+            <h3 className="mt-2 text-sm font-medium text-gray-900 dark:text-zinc-100">No accounts added</h3>
             <p className="mt-1 text-sm text-gray-500">Get started by adding your first Antigravity account.</p>
             <div className="mt-6">
               <a
@@ -194,15 +241,19 @@ export default function DashboardPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {data.accounts.map((account) => (
-              <AccountCard 
-                key={account.email} 
-                account={account} 
-                onRemove={handleRemoveAccount} 
-              />
-            ))}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={accounts.map((a) => a.email)} strategy={verticalListSortingStrategy}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {accounts.map((account) => (
+                  <AccountCard
+                    key={account.email}
+                    account={account}
+                    onRemove={handleRemoveAccount}
+                  />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
         )}
       </main>
 
@@ -220,31 +271,37 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
     if (!account.success || !account.data?.models) return [];
 
     const groups = new Map<string, ModelGroup>();
+    const recommendedIds = extractRecommendedModelIds(account.data.agentModelSorts);
+    const onlyShowRecommended = recommendedIds.size > 0;
     const otherGroup: ModelGroup = {
       id: 'other',
       name: 'Other',
+      sortName: 'zzzzzz',
       models: [],
       remainingFraction: 0,
       isOther: true
     };
 
     Object.entries(account.data.models).forEach(([id, model]) => {
+      if (onlyShowRecommended && !recommendedIds.has(id)) {
+        return;
+      }
+
       const isNoise = !model.displayName || id.startsWith('chat_') || id.startsWith('tab_');
       
-      if (isNoise) {
+      if (!onlyShowRecommended && isNoise) {
         otherGroup.models.push({ id, model });
         return;
       }
 
-      const provider = model.modelProvider || 'UNKNOWN';
-      const resetTime = model.quotaInfo.resetTime || 'NO_RESET';
       const fraction = model.quotaInfo.remainingFraction;
-      const groupKey = `${provider}_${resetTime}_${fraction}`;
+      const groupKey = buildQuotaSignature(model.quotaInfo);
 
       if (!groups.has(groupKey)) {
         groups.set(groupKey, {
           id: groupKey,
-          name: provider,
+          name: model.displayName || id,
+          sortName: (model.displayName || id).toLowerCase(),
           models: [],
           resetTime: model.quotaInfo.resetTime,
           remainingFraction: fraction,
@@ -260,6 +317,12 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
         const nameB = b.model.displayName || b.id;
         return nameA.localeCompare(nameB);
       });
+
+      const firstName = group.models[0]?.model.displayName || group.models[0]?.id || group.name;
+      group.sortName = firstName.toLowerCase();
+      group.name = group.models.length === 1
+        ? firstName
+        : `${firstName} + ${group.models.length - 1} more`;
     });
 
     otherGroup.models.sort((a, b) => {
@@ -268,7 +331,7 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
       return nameA.localeCompare(nameB);
     });
 
-    const sortedGroups = Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const sortedGroups = Array.from(groups.values()).sort((a, b) => a.sortName.localeCompare(b.sortName));
     
     if (otherGroup.models.length > 0) {
       sortedGroups.push(otherGroup);
@@ -279,19 +342,19 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
 
   return (
     <div 
-      className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col hover:border-blue-300 transition-colors cursor-default"
+      className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col hover:border-blue-300 transition-colors cursor-default"
       onContextMenu={(e) => {
         e.preventDefault();
         onRemove(account.email);
       }}
     >
-      <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-start">
+      <div className="p-5 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/50 flex justify-between items-start">
         <div className="flex items-center space-x-3 truncate">
           <div className="bg-blue-100 p-2 rounded-lg">
             <Mail className="h-5 w-5 text-blue-600" />
           </div>
           <div className="truncate">
-            <h3 className="font-semibold text-gray-900 truncate" title={account.email}>
+            <h3 className="font-semibold text-gray-900 dark:text-zinc-100 truncate" title={account.email}>
               {account.email}
             </h3>
             <div className="flex items-center mt-1">
@@ -332,16 +395,16 @@ function QuotaGroup({ group }: { group: ModelGroup }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white dark:bg-zinc-900 rounded-lg border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden">
       <button 
         onClick={(e) => {
           e.stopPropagation();
           setExpanded(!expanded);
         }}
-        className="w-full text-left px-4 py-3 hover:bg-gray-50 flex justify-between items-center focus:outline-none transition-colors"
+        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-zinc-800/50 flex justify-between items-center focus:outline-none transition-colors"
       >
         <div className="flex-1 min-w-0 mr-4">
-          <h4 className="font-medium text-gray-900 truncate">{group.name}</h4>
+          <h4 className="font-medium text-gray-900 dark:text-zinc-100 truncate">{group.name}</h4>
           {!group.isOther && (
             <div className="flex items-center text-xs text-gray-500 mt-1 flex-wrap gap-x-3 gap-y-1">
               <span className={`font-bold ${getQuotaColor(group.remainingFraction)}`}>
@@ -350,9 +413,17 @@ function QuotaGroup({ group }: { group: ModelGroup }) {
               {group.resetTime && (
                 <span className="flex items-center">
                   <Clock className="h-3 w-3 mr-1" />
-                  Resets: {formatRelativeTime(group.resetTime)}
+                  Refreshing {formatRelativeTime(group.resetTime)}
                 </span>
               )}
+            </div>
+          )}
+          {!group.isOther && (
+            <div className="mt-2 h-1.5 rounded-full bg-gray-200 overflow-hidden">
+              <div
+                className={`h-full ${getQuotaBgColor(group.remainingFraction)} transition-all duration-300`}
+                style={{ width: `${Math.max(0, Math.min(100, Math.round(group.remainingFraction * 100)))}%` }}
+              />
             </div>
           )}
         </div>
@@ -362,10 +433,10 @@ function QuotaGroup({ group }: { group: ModelGroup }) {
       </button>
       
       {expanded && (
-        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50/50 space-y-2">
+        <div className="px-4 py-3 border-t border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/50 space-y-2">
           {group.models.map(({ id, model }) => (
             <div key={id} className="flex justify-between items-center text-sm">
-              <span className="text-gray-700 truncate mr-2">
+              <span className="text-gray-700 dark:text-zinc-300 truncate mr-2">
                 {model.displayName || id}
               </span>
               {group.isOther && (
@@ -387,25 +458,51 @@ function getQuotaColor(fraction: number) {
   return 'text-green-600';
 }
 
+function getQuotaBgColor(fraction: number) {
+  if (fraction < 0.2) return 'bg-red-500';
+  if (fraction < 0.5) return 'bg-amber-500';
+  return 'bg-green-500';
+}
+
+function buildQuotaSignature(quotaInfo: QuotaInfo) {
+  const fraction = Number.isFinite(quotaInfo.remainingFraction) ? quotaInfo.remainingFraction : 0;
+  const fractionKey = fraction.toFixed(6);
+
+  if (!quotaInfo.resetTime) {
+    return `${fractionKey}_NO_RESET`;
+  }
+
+  const parsedResetTime = new Date(quotaInfo.resetTime);
+  if (Number.isNaN(parsedResetTime.getTime())) {
+    return `${fractionKey}_NO_RESET`;
+  }
+
+  return `${fractionKey}_${parsedResetTime.getTime()}`;
+}
+
 function formatRelativeTime(dateString?: string) {
   if (!dateString) return 'No reset time';
   const resetDate = new Date(dateString);
+  if (Number.isNaN(resetDate.getTime())) return 'unknown';
   const now = new Date();
   const diffMs = resetDate.getTime() - now.getTime();
   
   if (diffMs <= 0) return 'Resetting now...';
   
   const diffMins = Math.floor(diffMs / 60000);
-  const hours = Math.floor(diffMins / 60);
+  const days = Math.floor(diffMins / 1440);
+  const hours = Math.floor((diffMins % 1440) / 60);
   const mins = diffMins % 60;
   
-  if (hours > 24) {
-    const days = Math.floor(hours / 24);
+  if (days > 0) {
+    if (hours > 0) {
+      return `in ${days} day${days > 1 ? 's' : ''} ${hours} hour${hours > 1 ? 's' : ''}`;
+    }
     return `in ${days} day${days > 1 ? 's' : ''}`;
   }
   
   if (hours > 0) {
-    return `in ${hours}h ${mins}m`;
+    return `in ${hours} hour${hours > 1 ? 's' : ''} ${mins} min`;
   }
   
   return `in ${mins}m`;
