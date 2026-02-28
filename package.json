@@ -1,15 +1,23 @@
 {
-  "name": "quota-dashboard",
-  "version": "0.1.0",
-  "private": true,
+  "name": "ag-quota-dashboard",
+  "version": "0.2.1",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "ag-quota-dashboard": "dist/cli/index.js"
+  },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "tsc -p src/cli/tsconfig.json",
+    "build:next": "next build",
+    "prepublishOnly": "pnpm build",
     "start": "next start",
     "lint": "eslint",
     "test": "node --import tsx --test \"src/**/*.test.ts\""
   },
   "dependencies": {
+    "commander": "^12.1.0",
+    "open": "^10.0.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
