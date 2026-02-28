@@ -24,7 +24,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { extractRecommendedModelIds, type AgentModelSort } from '@/lib/recommended-models';
 
 interface QuotaInfo {
-  remainingFraction: number;
+  remainingFraction?: number;
   resetTime?: string;
 }
 
@@ -305,7 +305,7 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
         return;
       }
 
-      const fraction = model.quotaInfo.remainingFraction;
+      const fraction = typeof model.quotaInfo.remainingFraction === 'number' ? model.quotaInfo.remainingFraction : 0;
       const groupKey = buildQuotaSignature(model.quotaInfo);
 
       if (!groups.has(groupKey)) {
@@ -458,8 +458,8 @@ function QuotaGroup({ group }: { group: ModelGroup }) {
                 {model.displayName || id}
               </span>
               {group.isOther && (
-                <span className={`text-xs font-bold ${getQuotaColor(model.quotaInfo.remainingFraction)}`}>
-                  {Math.round(model.quotaInfo.remainingFraction * 100)}%
+                <span className={`text-xs font-bold ${getQuotaColor(model.quotaInfo.remainingFraction ?? 0)}`}>
+                  {Math.round((model.quotaInfo.remainingFraction ?? 0) * 100)}%
                 </span>
               )}
             </div>
@@ -483,7 +483,7 @@ function getQuotaBgColor(fraction: number) {
 }
 
 function buildQuotaSignature(quotaInfo: QuotaInfo) {
-  const fraction = Number.isFinite(quotaInfo.remainingFraction) ? quotaInfo.remainingFraction : 0;
+  const fraction = typeof quotaInfo.remainingFraction === 'number' ? quotaInfo.remainingFraction : 0;
   const fractionKey = fraction.toFixed(6);
 
   if (!quotaInfo.resetTime) {
