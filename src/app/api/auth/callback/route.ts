@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { upsertAccount } from '@/lib/db';
 import { buildOAuthRedirectUrl } from '@/lib/request-origin';
-
-const CLIENT_ID = '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com';
-const CLIENT_SECRET = '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';
+import { getOAuthClientId, getOAuthClientSecret } from '@/lib/oauth-config';
 
 function decodeIdToken(idToken: string) {
   try {
@@ -21,6 +19,8 @@ function decodeIdToken(idToken: string) {
 }
 
 export async function GET(request: NextRequest) {
+  const clientId = getOAuthClientId();
+  const clientSecret = getOAuthClientSecret();
   const redirectUri = buildOAuthRedirectUrl(request.url, request.headers);
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
@@ -44,8 +44,8 @@ export async function GET(request: NextRequest) {
       },
       body: new URLSearchParams({
         code,
-        client_id: CLIENT_ID,
-        client_secret: CLIENT_SECRET,
+        client_id: clientId,
+        client_secret: clientSecret,
         redirect_uri: redirectUri,
         grant_type: 'authorization_code',
       }),

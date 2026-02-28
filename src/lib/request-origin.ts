@@ -1,3 +1,5 @@
+import { getOAuthRedirectUriOverride } from './oauth-config';
+
 const OAUTH_CALLBACK_PATH = '/api/auth/callback';
 
 function normalizeBaseUrl(url: string): string {
@@ -30,6 +32,11 @@ export function resolveBaseUrl(requestUrl: string, headers: Pick<Headers, 'get'>
 }
 
 export function buildOAuthRedirectUrl(requestUrl: string, headers: Pick<Headers, 'get'>): string {
+  const redirectUriOverride = getOAuthRedirectUriOverride();
+  if (redirectUriOverride) {
+    return normalizeBaseUrl(redirectUriOverride);
+  }
+
   const baseUrl = resolveBaseUrl(requestUrl, headers);
   return `${baseUrl}${OAUTH_CALLBACK_PATH}`;
 }

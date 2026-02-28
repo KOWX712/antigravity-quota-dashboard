@@ -1,8 +1,7 @@
 import { Account, upsertAccount } from './db';
 import type { AgentModelSort } from './recommended-models';
+import { getOAuthClientId, getOAuthClientSecret } from './oauth-config';
 
-const CLIENT_ID = '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com';
-const CLIENT_SECRET = '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';
 const BASE_URL = 'https://cloudcode-pa.googleapis.com';
 
 export interface AvailableModelsResponse {
@@ -12,12 +11,15 @@ export interface AvailableModelsResponse {
 }
 
 export async function refreshAccessToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
+  const clientId = getOAuthClientId();
+  const clientSecret = getOAuthClientSecret();
+
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: CLIENT_ID,
-      client_secret: CLIENT_SECRET,
+      client_id: clientId,
+      client_secret: clientSecret,
       refresh_token: refreshToken,
       grant_type: 'refresh_token',
     }),

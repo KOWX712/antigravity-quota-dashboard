@@ -38,3 +38,12 @@ test('buildOAuthRedirectUrl appends callback path', () => {
 
   assert.equal(redirectUrl, 'http://quota-dashboard.local/api/auth/callback');
 });
+
+test('buildOAuthRedirectUrl prefers explicit OAUTH_REDIRECT_URI when configured', () => {
+  process.env.OAUTH_REDIRECT_URI = 'https://auth.example.com/google/callback';
+
+  const redirectUrl = buildOAuthRedirectUrl('http://quota-dashboard.local/api/auth/login', new Headers());
+
+  assert.equal(redirectUrl, 'https://auth.example.com/google/callback');
+  delete process.env.OAUTH_REDIRECT_URI;
+});

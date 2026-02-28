@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { buildOAuthRedirectUrl } from '@/lib/request-origin';
+import { getOAuthClientId } from '@/lib/oauth-config';
 
-const CLIENT_ID = '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com';
 const SCOPES = [
   'https://www.googleapis.com/auth/cloud-platform',
   'https://www.googleapis.com/auth/userinfo.email',
@@ -9,10 +9,11 @@ const SCOPES = [
 ].join(' ');
 
 export async function GET(request: Request) {
+  const clientId = getOAuthClientId();
   const redirectUri = buildOAuthRedirectUrl(request.url, request.headers);
 
   const params = new URLSearchParams({
-    client_id: CLIENT_ID,
+    client_id: clientId,
     redirect_uri: redirectUri,
     response_type: 'code',
     scope: SCOPES,
