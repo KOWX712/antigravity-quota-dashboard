@@ -6,10 +6,23 @@ import { upsertAccount, getAccount } from '@/lib/db';
 
 const CONFIG_PATH = path.join(os.homedir(), '.config/opencode/antigravity-accounts.json');
 
+interface PluginConfigAccount {
+  email?: string;
+  refreshToken?: string;
+}
+
+interface PluginConfig {
+  accounts?: PluginConfigAccount[];
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Internal server error';
+}
+
 export async function POST() {
   try {
     const fileContent = await fs.readFile(CONFIG_PATH, 'utf-8');
-    const data = JSON.parse(fileContent);
+    const data: PluginConfig = JSON.parse(fileContent);
 
     if (!data.accounts || !Array.isArray(data.accounts)) {
       return NextResponse.json({ error: 'Invalid config format: "accounts" array missing' }, { status: 400 });
@@ -42,13 +55,13 @@ export async function POST() {
     }
 
     return NextResponse.json({ message: 'Config loaded successfully', results });
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
       return NextResponse.json({ error: 'Config file not found' }, { status: 404 });
     }
     if (error instanceof SyntaxError) {
       return NextResponse.json({ error: 'Invalid JSON in config file' }, { status: 400 });
     }
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 });
   }
 }

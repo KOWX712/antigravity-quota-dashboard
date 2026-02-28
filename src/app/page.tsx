@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { GripVertical, RefreshCw, UserPlus, AlertCircle, CheckCircle2, Clock, Mail, Zap, Download, ChevronDown } from 'lucide-react';
+import { GripVertical, RefreshCw, UserPlus, AlertCircle, CheckCircle2, Clock, Mail, Download, ChevronDown } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -148,6 +148,9 @@ export default function DashboardPage() {
         throw new Error(result.error || 'Failed to remove account');
       }
 
+      // Optimistically remove from local state
+      setAccounts(prev => prev.filter(acc => acc.email !== email));
+      
       await refetch();
     } catch (err: unknown) {
       alert(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
@@ -159,7 +162,7 @@ export default function DashboardPage() {
       <header className="bg-white dark:bg-zinc-900 border-b dark:border-zinc-800 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-2">
-            <Zap className="h-6 w-6 text-blue-600 fill-blue-600" />
+            <img src="/icon.svg" alt="Antigravity Logo" className="h-8 w-8" />
             <h1 className="text-xl font-bold tracking-tight">Antigravity Quota</h1>
           </div>
           <div className="flex items-center space-x-3">

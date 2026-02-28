@@ -1,8 +1,15 @@
 import { Account, upsertAccount } from './db';
+import type { AgentModelSort } from './recommended-models';
 
 const CLIENT_ID = '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com';
 const CLIENT_SECRET = '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';
 const BASE_URL = 'https://cloudcode-pa.googleapis.com';
+
+export interface AvailableModelsResponse {
+  models?: Record<string, unknown>;
+  agentModelSorts?: AgentModelSort[];
+  [key: string]: unknown;
+}
 
 export async function refreshAccessToken(refreshToken: string): Promise<{ access_token: string; expires_in: number }> {
   const response = await fetch('https://oauth2.googleapis.com/token', {
@@ -52,7 +59,7 @@ export async function loadCodeAssist(accessToken: string): Promise<string> {
   return data.cloudaicompanionProject;
 }
 
-export async function fetchAvailableModels(accessToken: string, projectId: string): Promise<any> {
+export async function fetchAvailableModels(accessToken: string, projectId: string): Promise<AvailableModelsResponse> {
   const response = await fetch(`${BASE_URL}/v1internal:fetchAvailableModels`, {
     method: 'POST',
     headers: {
