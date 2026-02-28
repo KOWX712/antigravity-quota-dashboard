@@ -1,17 +1,19 @@
 import { NextResponse } from 'next/server';
+import { buildOAuthRedirectUrl } from '@/lib/request-origin';
 
 const CLIENT_ID = '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com';
-const REDIRECT_URI = 'http://localhost:3000/api/auth/callback';
 const SCOPES = [
   'https://www.googleapis.com/auth/cloud-platform',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/userinfo.profile',
 ].join(' ');
 
-export async function GET() {
+export async function GET(request: Request) {
+  const redirectUri = buildOAuthRedirectUrl(request.url, request.headers);
+
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
-    redirect_uri: REDIRECT_URI,
+    redirect_uri: redirectUri,
     response_type: 'code',
     scope: SCOPES,
     access_type: 'offline',
