@@ -47,10 +47,25 @@ export default function DashboardPage() {
     setConfigError(null);
     try {
       const res = await fetch('/api/auth/load-plugin-config', { method: 'POST' });
-      const result = await res.json();
+      
       if (!res.ok) {
-        throw new Error(result.error || 'Failed to load config');
+        let errorMessage = 'Failed to load config';
+        try {
+          const result = await res.json();
+          errorMessage = result.error || errorMessage;
+        } catch (e) {
+          errorMessage = `Server error (${res.status}): ${res.statusText || 'Unexpected response format'}`;
+        }
+        throw new Error(errorMessage);
       }
+
+      // Parse success response if needed (though we mostly care about refetch)
+      try {
+        await res.json();
+      } catch (e) {
+        // Ignore parsing errors on success if we don't need the data
+      }
+      
       await refetch();
     } catch (err: any) {
       setConfigError(err.message);
