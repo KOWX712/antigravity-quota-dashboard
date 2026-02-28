@@ -67,10 +67,33 @@ export default function DashboardPage() {
       }
       
       await refetch();
-    } catch (err: any) {
-      setConfigError(err.message);
+    } catch (err: unknown) {
+      setConfigError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setIsLoadingConfig(false);
+    }
+  };
+
+  const handleRemoveAccount = async (email: string) => {
+    if (!window.confirm(`Are you sure you want to remove account ${email}?`)) {
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/accounts/remove', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!res.ok) {
+        const result = await res.json();
+        throw new Error(result.error || 'Failed to remove account');
+      }
+
+      await refetch();
+    } catch (err: unknown) {
+      alert(`Error: ${err instanceof Error ? err.message : "Unknown error"}`);
     }
   };
 
@@ -163,7 +186,11 @@ export default function DashboardPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {data.accounts.map((account) => (
-              <AccountCard key={account.email} account={account} />
+              <AccountCard 
+                key={account.email} 
+                account={account} 
+                onRemove={handleRemoveAccount} 
+              />
             ))}
           </div>
         )}
@@ -178,9 +205,15 @@ export default function DashboardPage() {
   );
 }
 
-function AccountCard({ account }: { account: AccountData }) {
+function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (email: string) => void }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+    <div 
+      className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col hover:border-blue-300 transition-colors cursor-default"
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onRemove(account.email);
+      }}
+    >
       <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-start">
         <div className="flex items-center space-x-3 truncate">
           <div className="bg-blue-100 p-2 rounded-lg">
