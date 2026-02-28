@@ -161,10 +161,16 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-black text-gray-900 dark:text-zinc-100 font-sans">
       <header className="bg-white dark:bg-zinc-900 border-b dark:border-zinc-800 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
+          <a
+            href="https://github.com/KOWX712/antigravity-quota-dashboard"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+            aria-label="Open antigravity-quota-dashboard repository"
+          >
             <img src="/icon.svg" alt="Antigravity Logo" className="h-8 w-8" />
             <h1 className="text-xl font-bold tracking-tight">Antigravity Quota</h1>
-          </div>
+          </a>
           <div className="flex items-center space-x-3">
             <button
               onClick={handleLoadConfig}
