@@ -267,6 +267,14 @@ export default function DashboardPage() {
 }
 
 function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (email: string) => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: account.email });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : 1,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
   const groupedModels = useMemo(() => {
     if (!account.success || !account.data?.models) return [];
 
@@ -342,6 +350,8 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
 
   return (
     <div 
+      ref={setNodeRef}
+      style={style}
       className="bg-white dark:bg-zinc-900 rounded-xl border border-gray-200 dark:border-zinc-800 shadow-sm overflow-hidden flex flex-col hover:border-blue-300 transition-colors cursor-default"
       onContextMenu={(e) => {
         e.preventDefault();
@@ -350,6 +360,11 @@ function AccountCard({ account, onRemove }: { account: AccountData; onRemove: (e
     >
       <div className="p-5 border-b border-gray-100 dark:border-zinc-800 bg-gray-50/50 dark:bg-zinc-800/50 flex justify-between items-start">
         <div className="flex items-center space-x-3 truncate">
+          <GripVertical 
+            className="h-5 w-5 text-gray-400 dark:text-zinc-500 cursor-grab active:cursor-grabbing outline-none flex-shrink-0" 
+            {...attributes} 
+            {...listeners} 
+          />
           <div className="bg-blue-100 p-2 rounded-lg">
             <Mail className="h-5 w-5 text-blue-600" />
           </div>
