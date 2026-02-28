@@ -1,15 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  RefreshCw, 
-  UserPlus, 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
-  Mail,
-  Zap
-} from 'lucide-react';
+import { RefreshCw, UserPlus, AlertCircle, CheckCircle2, Clock, Mail, Zap, Download } from 'lucide-react';
 
 interface QuotaInfo {
   remainingFraction: number;
@@ -36,6 +29,9 @@ interface QuotaResponse {
 }
 
 export default function DashboardPage() {
+  const [isLoadingConfig, setIsLoadingConfig] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
+
   const { data, isLoading, error, refetch, isFetching } = useQuery<QuotaResponse>({
     queryKey: ['quotas'],
     queryFn: async () => {
@@ -46,6 +42,23 @@ export default function DashboardPage() {
     refetchInterval: 300000, // 5 minutes
   });
 
+  const handleLoadConfig = async () => {
+    setIsLoadingConfig(true);
+    setConfigError(null);
+    try {
+      const res = await fetch('/api/auth/load-plugin-config', { method: 'POST' });
+      const result = await res.json();
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to load config');
+      }
+      await refetch();
+    } catch (err: any) {
+      setConfigError(err.message);
+    } finally {
+      setIsLoadingConfig(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
       <header className="bg-white border-b sticky top-0 z-10">
@@ -55,6 +68,14 @@ export default function DashboardPage() {
             <h1 className="text-xl font-bold tracking-tight">Antigravity Quota</h1>
           </div>
           <div className="flex items-center space-x-3">
+            <button
+              onClick={handleLoadConfig}
+              disabled={isLoadingConfig}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+            >
+              <Download className={`h-4 w-4 mr-2 ${isLoadingConfig ? 'animate-pulse' : ''}`} />
+              {isLoadingConfig ? 'Loading...' : 'Load Plugin Config'}
+            </button>
             <button 
               onClick={() => refetch()}
               disabled={isFetching}
@@ -75,6 +96,24 @@ export default function DashboardPage() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {configError && (
+          <div className="mb-6 bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+              <div className="ml-3">
+                <p className="text-sm text-red-700">
+                  {configError}
+                </p>
+              </div>
+              <button
+                onClick={() => setConfigError(null)}
+                className="ml-auto pl-3 text-red-500 hover:text-red-600"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        )}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-4">
             <RefreshCw className="h-10 w-10 text-blue-500 animate-spin" />
