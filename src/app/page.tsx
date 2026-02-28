@@ -1,65 +1,204 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useQuery } from '@tanstack/react-query';
+import { 
+  RefreshCw, 
+  UserPlus, 
+  AlertCircle, 
+  CheckCircle2, 
+  Clock, 
+  Mail,
+  Zap
+} from 'lucide-react';
+
+interface QuotaInfo {
+  remainingFraction: number;
+  resetTime?: string;
+}
+
+interface ModelInfo {
+  displayName: string;
+  quotaInfo: QuotaInfo;
+}
+
+interface AccountData {
+  email: string;
+  success: boolean;
+  data?: {
+    models: Record<string, ModelInfo>;
+  };
+  error?: string;
+}
+
+interface QuotaResponse {
+  timestamp: string;
+  accounts: AccountData[];
+}
+
+export default function DashboardPage() {
+  const { data, isLoading, error, refetch, isFetching } = useQuery<QuotaResponse>({
+    queryKey: ['quotas'],
+    queryFn: async () => {
+      const res = await fetch('/api/quotas');
+      if (!res.ok) throw new Error('Failed to fetch quotas');
+      return res.json();
+    },
+    refetchInterval: 300000, // 5 minutes
+  });
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+      <header className="bg-white border-b sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center space-x-2">
+            <Zap className="h-6 w-6 text-blue-600 fill-blue-600" />
+            <h1 className="text-xl font-bold tracking-tight">Antigravity Quota</h1>
+          </div>
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
+              <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+              {isFetching ? 'Refreshing...' : 'Refresh Now'}
+            </button>
             <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              href="/api/auth/login"
+              className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Account
+            </a>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <RefreshCw className="h-10 w-10 text-blue-500 animate-spin" />
+            <p className="text-gray-500 font-medium">Loading aggregated quotas...</p>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-md">
+            <div className="flex">
+              <AlertCircle className="h-5 w-5 text-red-400" />
+              <div className="ml-3">
+                <p className="text-sm text-red-700">
+                  Error loading quotas: {(error as Error).message}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : !data?.accounts || data.accounts.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-xl border border-dashed border-gray-300">
+            <Mail className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">No accounts added</h3>
+            <p className="mt-1 text-sm text-gray-500">Get started by adding your first Antigravity account.</p>
+            <div className="mt-6">
+              <a
+                href="/api/auth/login"
+                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+              >
+                <UserPlus className="-ml-1 mr-2 h-5 w-5" aria-hidden="true" />
+                Add Account
+              </a>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {data.accounts.map((account) => (
+              <AccountCard key={account.email} account={account} />
+            ))}
+          </div>
+        )}
       </main>
+
+      {data?.timestamp && (
+        <footer className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8 text-center text-xs text-gray-400">
+          Last updated: {new Date(data.timestamp).toLocaleString()}
+        </footer>
+      )}
     </div>
   );
+}
+
+function AccountCard({ account }: { account: AccountData }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col">
+      <div className="p-5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-start">
+        <div className="flex items-center space-x-3 truncate">
+          <div className="bg-blue-100 p-2 rounded-lg">
+            <Mail className="h-5 w-5 text-blue-600" />
+          </div>
+          <div className="truncate">
+            <h3 className="font-semibold text-gray-900 truncate" title={account.email}>
+              {account.email}
+            </h3>
+            <div className="flex items-center mt-1">
+              {account.success ? (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                  <CheckCircle2 className="h-3 w-3 mr-1" /> Connected
+                </span>
+              ) : (
+                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                  <AlertCircle className="h-3 w-3 mr-1" /> Error
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-5 flex-grow">
+        {!account.success ? (
+          <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+            {account.error || 'Failed to fetch quota data.'}
+          </div>
+        ) : !account.data?.models || Object.keys(account.data.models).length === 0 ? (
+          <p className="text-sm text-gray-500 italic">No models found for this account.</p>
+        ) : (
+          <div className="space-y-6">
+            {Object.entries(account.data.models).map(([id, model]) => (
+              <div key={id} className="space-y-2">
+                <div className="flex justify-between items-end">
+                  <label className="text-sm font-medium text-gray-700 truncate mr-2">
+                    {model.displayName || id}
+                  </label>
+                  <span className={`text-xs font-bold ${getQuotaColor(model.quotaInfo.remainingFraction)}`}>
+                    {Math.round(model.quotaInfo.remainingFraction * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-500 ${getQuotaBgColor(model.quotaInfo.remainingFraction)}`}
+                    style={{ width: `${model.quotaInfo.remainingFraction * 100}%` }}
+                  />
+                </div>
+                {model.quotaInfo.resetTime && (
+                  <div className="flex items-center text-[10px] text-gray-400">
+                    <Clock className="h-3 w-3 mr-1" />
+                    Resets: {new Date(model.quotaInfo.resetTime).toLocaleString()}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function getQuotaColor(fraction: number) {
+  if (fraction < 0.2) return 'text-red-600';
+  if (fraction < 0.5) return 'text-amber-600';
+  return 'text-green-600';
+}
+
+function getQuotaBgColor(fraction: number) {
+  if (fraction < 0.2) return 'bg-red-500';
+  if (fraction < 0.5) return 'bg-amber-500';
+  return 'bg-green-500';
 }
