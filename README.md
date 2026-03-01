@@ -1,144 +1,105 @@
-# Antigravity Quota Dashboard
+# Ag-Quota-Dashboard
 
-A professional, high-fidelity dashboard for managing multiple Antigravity developer accounts in one place. Designed for users who need a unified view of their quotas and model usage across various accounts.
+A CLI tool and dashboard for managing Antigravity developer accounts in one place.
 
-## Key Features
-
-- **Multi-Account Support**: Support for viewing multiple Antigravity accounts' quotas in one place.
-- **Plugin Integration**: Support for importing configuration from the [opencode-antigravity-auth](https://github.com/NoeFabris/opencode-antigravity-auth) plugin (located at `~/.config/opencode/antigravity-accounts.json`).
-- **High-Fidelity UI**: Modern interface with full dark mode support and interactive drag-and-drop features.
-- **Signature-Based Grouping**: Signature-based quota grouping (clustering models that share the same bucket).
-- **Recommended Model Filtering**: Strict filtering for "Recommended" models, ensuring you focus on the most relevant options.
-
-## Tech Stack
-
-- **Framework**: [Next.js](https://nextjs.org/) (React 19)
-- **Styling**: [Tailwind CSS 4](https://tailwindcss.com/)
-- **Database**: [SQLite](https://www.sqlite.org/) (via `better-sqlite3`)
-- **State Management**: [TanStack Query](https://tanstack.com/query/latest)
-
-## LLM-Friendly Quick Context
-
-If you want help from an LLM agent, you can paste this command so it can fetch this README context directly:
+## Installation
 
 ```bash
-curl -s https://raw.githubusercontent.com/KOWX712/antigravity-quota-dashboard/master/README.md
+npm install -g ag-quota-dashboard
+# or
+pnpm add -g ag-quota-dashboard
 ```
 
-## Getting Started
+## Usage
 
-### 1. Clone the repository
-
-```
-git clone https://github.com/KOWX712/antigravity-quota-dashboard.git
-cd antigravity-quota-dashboard
-```
-
-### 2. First-time setup
+### Start the dashboard
 
 ```bash
-# Using pnpm (recommended)
-pnpm install && pnpm build
-
-# Or using npm
-npm install && npm run build
+ag-quota-dashboard start
 ```
 
-### 3. Deploy
+Options:
+- `-p, --port <port>` - Port to run on (default: 3000)
+- `-d, --daemon` - Run as a daemon (background process)
+
+### Stop the dashboard
 
 ```bash
-# Using pnpm
-pnpm start
-
-# Or using npm
-npm start
+ag-quota-dashboard stop
 ```
 
-### 4. Optional tips: local deployment behind Nginx for long-term use
+### Restart the dashboard
 
-Use this only if you want a local domain routed through Nginx (for example, `quota-dashboard.local`).
+```bash
+ag-quota-dashboard restart
+```
 
-1. Run the app on a dedicated port
-    ```bash
-    pnpm install
-    pnpm build
-    PORT=3001 pnpm start
-    ```
+Options:
+- `-p, --port <port>` - Port to run on (default: 3000)
 
-2. Add a hosts rule (example)
-    ```text
-    # /etc/hosts
-    127.0.0.1 quota-dashboard.local
-    ```
+### Check status
 
-  Tips:
-   - Use a unique local domain per app (`site-a.local`, `quota-dashboard.local`, etc.).
-   - If you access the app from another device, add the same hosts entry on that client device.
+```bash
+ag-quota-dashboard status
+```
 
-3. Add an Nginx vhost in `/etc/nginx/conf.d/quota-dashboard.conf`
-    ```nginx
-    server {
-      listen 80;
-      server_name quota-dashboard.local;
+Shows PID, port, URL, and uptime.
 
-      location / {
-        proxy_pass http://127.0.0.1:3001;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-      }
-    }
-    ```
+### Show dashboard URL
 
-4. Validate and reload Nginx
-    ```bash
-    sudo nginx -t
-    sudo systemctl reload nginx
-    ```
+```bash
+ag-quota-dashboard dashboard
+```
 
-5. Optional: run with systemd and set a canonical base URL
-    ```ini
-    # /etc/systemd/system/quota-dashboard.service
-    [Service]
-    WorkingDirectory=/path/to/antigravity-quota-dashboard
-    Environment=NODE_ENV=production
-    Environment=PORT=3001
-    Environment=APP_BASE_URL=http://quota-dashboard.local
-    ExecStart=/path/to/pnpm start
-    ```
+### Open in browser
 
-Then reload service config:
-  ```bash
-  sudo systemctl daemon-reload
-  sudo systemctl enable --now quota-dashboard
-  ```
+```bash
+ag-quota-dashboard open
+```
 
-`APP_BASE_URL` is optional, but recommended when running behind a custom local domain.
+Opens the dashboard in your default browser.
+
+### View logs
+
+```bash
+ag-quota-dashboard logs
+```
+
+Options:
+- `-f, --follow` - Follow log output (tail -f)
+- `-n, --lines <number>` - Number of lines to show (default: 50)
+
+### Configuration
+
+```bash
+ag-quota-dashboard config
+```
+
+Show current configuration:
+```bash
+ag-quota-dashboard config
+```
+
+Set a custom port:
+```bash
+ag-quota-dashboard config --set port=3001
+```
 
 ## Configuration
 
-This dashboard is specifically designed to work with the **opencode-antigravity-auth** plugin. It expects a configuration file at:
+This dashboard works with the **opencode-antigravity-auth** plugin. It expects a configuration file at:
 
 `~/.config/opencode/antigravity-accounts.json`
 
-Ensure your account details are correctly configured in that file for them to appear in the dashboard.
-
-### OAuth local workaround (when using the default bundled client)
-
-If you hit `Error 400: invalid_request` on custom local domains (for example `https://quota-dashboard.local`), use this callback override:
+## Development
 
 ```bash
-OAUTH_REDIRECT_URI=https://localhost/api/auth/callback
+# Install dependencies
+pnpm install
+
+# Build CLI
+pnpm build
+
+# Link for local testing
+pnpm link
 ```
-
-Why this works:
-- The bundled default OAuth client accepts localhost callbacks.
-- Some custom local domains are rejected by Google's validation policy for that client.
-
-For long-term stable deployment, prefer your own OAuth client credentials and authorize your actual domain callback URL.
-
-Feel free to PR any changes or improvements.
