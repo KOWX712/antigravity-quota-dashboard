@@ -41,10 +41,12 @@ export async function start(options: { port?: string; daemon?: boolean }) {
 
   console.log('Starting ag-quota-dashboard on port', port);
 
+  const command = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+
   if (daemon) {
     // Daemon mode: fully detach from terminal
     const serverProcess = spawn(
-      'npx',
+      command,
       ['next', 'start', '-p', port],
       {
         cwd: pkgDir,
@@ -56,7 +58,7 @@ export async function start(options: { port?: string; daemon?: boolean }) {
         },
         detached: true,
         stdio: 'ignore',
-        shell: true,
+        shell: false,
       }
     );
 
@@ -79,7 +81,7 @@ export async function start(options: { port?: string; daemon?: boolean }) {
 
   // Foreground mode: keep attached to terminal (original behavior)
   const serverProcess = spawn(
-    'npx',
+    command,
     ['next', 'start', '-p', port],
     {
       cwd: pkgDir,
@@ -90,7 +92,7 @@ export async function start(options: { port?: string; daemon?: boolean }) {
         NODE_OPTIONS: (process.env.NODE_OPTIONS || '') + ' --no-warnings',
       },
       stdio: ['ignore', 'pipe', 'pipe'],
-      shell: true,
+      shell: false,
     }
   );
 
