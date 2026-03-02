@@ -30,6 +30,8 @@ ag-quota-dashboard stop
 
 ### Restart the dashboard
 
+Restarts the dashboard as a background process (daemon mode).
+
 ```bash
 ag-quota-dashboard restart
 ```

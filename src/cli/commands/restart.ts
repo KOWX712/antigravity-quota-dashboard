@@ -5,5 +5,5 @@ export async function restart(options: { port?: string }) {
   console.log('Restarting ag-quota-dashboard...');
   await stop();
   await new Promise(resolve => setTimeout(resolve, 1000));
-  await start(options);
+  await start({ ...options, daemon: true });
 }
