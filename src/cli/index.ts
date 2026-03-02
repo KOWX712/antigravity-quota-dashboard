@@ -31,7 +31,7 @@ program
 
 program
   .command('restart')
-  .description('Restart the ag-quota-dashboard service')
+  .description('Restart the ag-quota-dashboard service in daemon mode')
   .option('-p, --port <port>', 'Port to run the server on', '3000')
   .action(restart);
 
