@@ -1,10 +1,14 @@
 {
   "name": "ag-quota-dashboard",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "ag-quota-dashboard": "dist/cli/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KOWX712/antigravity-quota-dashboard.git"
   },
   "scripts": {
     "dev": "next dev",
