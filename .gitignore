@@ -52,3 +52,6 @@ docs
 # worktrees
 .worktrees/
 worktrees/
+
+.gemini/
+gha-creds-*.json
