@@ -49,6 +49,7 @@ export async function start(options: { port?: string; daemon?: boolean }) {
         },
         detached: true,
         stdio: 'ignore',
+        shell: true,
       }
     );
     
@@ -81,6 +82,7 @@ export async function start(options: { port?: string; daemon?: boolean }) {
         DB_PATH: dbPath,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true,
     }
   );
   
